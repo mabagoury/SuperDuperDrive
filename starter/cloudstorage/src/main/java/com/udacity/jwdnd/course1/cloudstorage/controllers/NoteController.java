@@ -1,0 +1,71 @@
+package com.udacity.jwdnd.course1.cloudstorage.controllers;
+
+import com.udacity.jwdnd.course1.cloudstorage.model.*;
+import com.udacity.jwdnd.course1.cloudstorage.services.NoteService;
+import com.udacity.jwdnd.course1.cloudstorage.services.UserService;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+@Controller
+@RequestMapping("/note")
+public class NoteController {
+
+    private final NoteService noteService;
+    private final UserService userService;
+
+    public NoteController(NoteService noteService, UserService userService) {
+        this.noteService = noteService;
+        this.userService = userService;
+    }
+
+    @GetMapping
+    public String getHomePage(Authentication authentication, @ModelAttribute("newNote") NoteForm newNote, Model model) {
+        Integer userId = userService.getLoggedinUser(authentication).getUserId();
+        model.addAttribute("notes", noteService.getAllUserNotes(userId));
+        return "home";
+    }
+
+    @PostMapping("/add-note")
+    public String newOrEditNote(Authentication authentication, @ModelAttribute("newNote") NoteForm newNote, Model model) {
+        Integer userId = userService.getLoggedinUser(authentication).getUserId();
+        String newTitle = newNote.getTitle();
+        String noteIdStr = newNote.getNoteId();
+        String newDescription = newNote.getDescription();
+        if (noteIdStr.isEmpty()) {
+            noteService.addNote(newTitle, newDescription, userId);
+        } else {
+            noteService.editNote(Integer.parseInt(noteIdStr), newTitle, newDescription);
+        }
+        model.addAttribute("notes", noteService.getAllUserNotes(userId));
+        model.addAttribute("result", "success");
+        return "result";
+    }
+
+    /*@GetMapping(value = "/get-note/{noteId}")
+    public Note getNote(@PathVariable Integer noteId) {
+        return noteService.getNote(noteId);
+    }
+     */
+
+    @GetMapping(value = "/delete-note/{noteId}")
+    public String deleteNote(Authentication authentication, @PathVariable Integer noteId, @ModelAttribute("newNote") NoteForm newNote, Model model) {
+        noteService.deleteNote(noteId);
+        Integer userId = userService.getLoggedinUser(authentication).getUserId();
+        model.addAttribute("notes", noteService.getAllUserNotes(userId));
+        model.addAttribute("result", "success");
+        return "result";
+    }
+
+    @ModelAttribute("newFile")
+    public FileForm addFileForm() {
+        return new FileForm();
+    }
+
+    @ModelAttribute("newCredential")
+    public CredentialForm addCredentialForm() {
+        return new CredentialForm();
+    }
+
+}
